@@ -1,0 +1,2386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskHub</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></link>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e27;
+            color: #e4e6eb;
+            min-height: 100vh;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f1629;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        .app-wrapper {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #0f1629;
+            border-right: 1px solid #1a2847;
+            padding: 24px 0;
+            overflow-y: auto;
+            position: fixed;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-280px);
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .sidebar-backdrop.active {
+            display: block;
+        }
+
+        .toggle-sidebar {
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            color: #667eea;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+
+        .toggle-sidebar:hover {
+            background: #1a2747;
+            border-color: #667eea;
+        }
+
+        .sidebar-header {
+            padding: 0 24px 32px;
+            border-bottom: 1px solid #1a2847;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-section {
+            padding: 16px 0;
+            border-bottom: 1px solid #1a2847;
+        }
+
+        .nav-section:last-child {
+            border-bottom: none;
+            margin-top: auto;
+        }
+
+        .nav-section-title {
+            padding: 8px 24px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #7a8ba8;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #7a8ba8;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+        }
+
+        .nav-item:hover {
+            background: #16213e;
+            color: #e4e6eb;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+            color: #667eea;
+            border-right: 3px solid #667eea;
+            padding-right: 21px;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.sidebar-collapsed {
+            margin-left: 0;
+        }
+
+        .header {
+            background: #0f1629;
+            border-bottom: 1px solid #1a2847;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        input {
+            flex: 1;
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            color: #e4e6eb;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input::placeholder {
+            color: #7a8ba8;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.1s, box-shadow 0.2s;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .todo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #16213e;
+            padding: 16px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s;
+            width: 100%;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .todo-item:hover {
+            background: #1a2747;
+            border-left-color: #764ba2;
+        }
+
+        .todo-item.completed {
+            opacity: 0.6;
+            border-left-color: #4caf50;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #7a8ba8;
+        }
+
+        .todo-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            flex-shrink: 0;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+            pointer-events: none;
+        }
+
+        .todo-text {
+            flex: 1;
+            word-break: break-word;
+            min-width: 0;
+            font-size: 0.95rem;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 6px 8px;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            color: #764ba2;
+        }
+
+        .action-btn.delete:hover {
+            color: #dc3545;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal {
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #e4e6eb;
+        }
+
+        .modal-field {
+            margin-bottom: 16px;
+        }
+
+        .modal-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #7a8ba8;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .modal-input {
+            width: 100%;
+            background: #0f1629;
+            border: 1px solid #2a3f5f;
+            color: #e4e6eb;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-input[type="date"] {
+            color-scheme: dark;
+        }
+
+        .modal-input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.7) hue-rotate(200deg);
+            cursor: pointer;
+        }
+
+        .modal-time-inputs {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-time-inputs input {
+            flex: 1;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .modal-btn.save {
+            background: #4caf50;
+            color: white;
+        }
+
+        .modal-btn.save:hover {
+            background: #45a049;
+        }
+
+        .modal-btn.cancel {
+            background: #2a3f5f;
+            color: #e4e6eb;
+        }
+
+        .modal-btn.cancel:hover {
+            background: #3a4f7f;
+        }
+
+        .modal-btn.delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .modal-btn.delete:hover {
+            background: #c82333;
+        }
+
+        .todo-edit-input {
+            background: #0f1629;
+            border: 1px solid #667eea;
+            color: #e4e6eb;
+            padding: 8px 12px;
+            border-radius: 4px;
+            flex: 1;
+            font-size: 0.95rem;
+        }
+
+        .todo-edit-input:focus {
+            outline: none;
+            border-color: #764ba2;
+        }
+
+        .todo-edit-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .todo-edit-btn {
+            background: #4caf50;
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .todo-edit-btn:hover {
+            background: #45a049;
+        }
+
+        .todo-edit-cancel {
+            background: #dc3545;
+        }
+
+        .todo-edit-cancel:hover {
+            background: #c82333;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #7a8ba8;
+            padding: 80px 40px;
+            font-size: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #7a8ba8;
+            margin-top: 8px;
+        }
+
+        .calculator-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: calc(100vh - 100px);
+            padding-top: 40px;
+        }
+
+        .calculator {
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .calc-displays {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .calc-formula {
+            background: #0f1629;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            padding: 12px 16px;
+            text-align: right;
+            font-size: 0.85rem;
+            color: #7a8ba8;
+            min-height: 24px;
+            font-family: 'Courier New', monospace;
+            word-wrap: break-word;
+            word-break: break-all;
+        }
+
+        .calc-display {
+            background: #0f1629;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            padding: 24px;
+            text-align: right;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #667eea;
+            word-wrap: break-word;
+            word-break: break-all;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-family: 'Courier New', monospace;
+        }
+
+        .calc-history {
+            background: #0f1629;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .calc-history-item {
+            font-size: 0.85rem;
+            color: #7a8ba8;
+            padding: 4px 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .calc-top-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .calc-btn {
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            color: #e4e6eb;
+            padding: 18px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            min-height: 50px;
+        }
+
+        .calc-btn:hover {
+            background: #1a2747;
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .calc-btn:active {
+            transform: scale(0.95);
+        }
+
+        .calc-btn.operator {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .calc-btn.operator:hover {
+            background: #764ba2;
+            border-color: #764ba2;
+        }
+
+        .calc-btn.equals {
+            background: #4caf50;
+            border-color: #4caf50;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .calc-btn.equals:hover {
+            background: #45a049;
+            border-color: #45a049;
+        }
+
+        .calc-btn.clear {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: white;
+        }
+
+        .calc-btn.clear:hover {
+            background: #c82333;
+            border-color: #c82333;
+        }
+
+        .calc-btn.delete {
+            background: #ff9800;
+            border-color: #ff9800;
+            color: white;
+        }
+
+        .calc-btn.delete:hover {
+            background: #e68900;
+            border-color: #e68900;
+        }
+
+        .calc-btn.secondary {
+            background: #2a3f5f;
+            border-color: #3a4f7f;
+        }
+
+        .calc-btn.secondary:hover {
+            background: #3a4f7f;
+            border-color: #4a5f8f;
+        }
+
+        .notes-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: calc(100vh - 100px);
+            padding: 40px 20px;
+        }
+
+        .notes-container {
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .notes-textarea {
+            width: 100%;
+            height: 550px;
+            padding: 16px;
+            background: #0f1629;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            color: #e4e6eb;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 1rem;
+            line-height: 1.5;
+            resize: vertical;
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .notes-textarea::placeholder {
+            color: #7a8ba8;
+        }
+
+        .clock-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: calc(100vh - 100px);
+            padding-top: 60px;
+        }
+
+        .clock-container {
+            background: #050810;
+            border: 1px solid #2a3f5f;
+            border-radius: 16px;
+            padding: 60px 80px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            position: relative;
+        }
+
+        .clock-time {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+        }
+
+        .clock-date {
+            font-size: 1.25rem;
+            color: #667eea;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            margin-bottom: 0;
+        }
+
+        .clock-ampm {
+            display: inline-block;
+            font-size: 1.5rem;
+            margin-left: 16px;
+            color: #7a8ba8;
+            font-weight: 600;
+        }
+
+        .clock-format-btn {
+            background: #2a3f5f;
+            border: 1px solid #3a4f7f;
+            color: #667eea;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+        }
+
+        .clock-format-btn:hover {
+            background: #3a4f7f;
+            border-color: #667eea;
+        }
+
+        .clock-format-btn:active {
+            transform: scale(0.95);
+        }
+
+        .calendar-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 20px;
+        }
+
+        .calendar-container {
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            border-radius: 12px;
+            padding: 24px;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .calendar-nav-btn {
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            color: #667eea;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .calendar-nav-btn:hover {
+            background: #1a2747;
+            border-color: #667eea;
+        }
+
+        .calendar-month-year {
+            font-size: 1.3rem;
+            font-weight: 600;
+            text-align: center;
+            flex: 1;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            color: #7a8ba8;
+            font-size: 0.85rem;
+            padding: 8px 0;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: #0f1629;
+            border: 1px solid #1a2847;
+            color: #7a8ba8;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .calendar-day.other-month {
+            color: #3a4d6f;
+        }
+
+        .calendar-day.today {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            font-weight: 600;
+        }
+
+        .calendar-day:hover:not(.other-month) {
+            background: #1a2747;
+            border-color: #667eea;
+        }
+
+        .calendar-day.selected {
+            background: #764ba2;
+            color: white;
+            border-color: #764ba2;
+            font-weight: 600;
+        }
+
+        .calendar-event-panel {
+            background: #0f1629;
+            border: 1px solid #2a3f5f;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .event-date-display {
+            font-size: 0.9rem;
+            color: #7a8ba8;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .event-input-wrapper {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .event-input-wrapper input {
+            flex: 1;
+            background: #16213e;
+            border: 1px solid #2a3f5f;
+            color: #e4e6eb;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .event-input-wrapper input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .event-input-wrapper button {
+            background: #667eea;
+            border: 1px solid #667eea;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .event-input-wrapper button:hover {
+            background: #764ba2;
+            border-color: #764ba2;
+        }
+
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .event-item {
+            background: #16213e;
+            border-left: 3px solid #667eea;
+            padding: 10px 12px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .event-item-text {
+            flex: 1;
+            color: #e4e6eb;
+        }
+
+        .event-delete-btn {
+            background: #dc3545;
+            border: none;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+
+        .event-delete-btn:hover {
+            background: #c82333;
+        }
+
+        .no-events {
+            color: #7a8ba8;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 12px;
+        }
+
+        .pane-mode-toggle {
+            margin-top: auto;
+            padding: 16px 0;
+            border-top: 1px solid #1a2847;
+        }
+
+        .pane-mode-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #7a8ba8;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .pane-mode-btn:hover {
+            background: #16213e;
+            color: #e4e6eb;
+        }
+
+        .pane-mode-btn.active {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+            color: #667eea;
+            border-right: 3px solid #667eea;
+            padding-right: 21px;
+        }
+
+        .pane-toggle-switch {
+            width: 40px;
+            height: 24px;
+            background: #2a3f5f;
+            border-radius: 12px;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .pane-mode-btn.active .pane-toggle-switch {
+            background: #667eea;
+        }
+
+        .pane-toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 10px;
+            top: 2px;
+            left: 2px;
+            transition: left 0.2s;
+        }
+
+        .pane-mode-btn.active .pane-toggle-switch::after {
+            left: 18px;
+        }
+
+        .panes-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            height: calc(100vh - 100px);
+            padding: 20px;
+            overflow: auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .panes-container.single {
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 1200px) {
+            .panes-container {
+                grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            }
+        }
+
+        .pane {
+            background: #0f1629;
+            border: 1px solid #2a3f5f;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .pane-header {
+            background: #16213e;
+            border-bottom: 1px solid #2a3f5f;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .pane-title {
+            font-weight: 600;
+            color: #e4e6eb;
+        }
+
+        .pane-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pane-control-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px 8px;
+            transition: color 0.2s;
+        }
+
+        .pane-control-btn:hover {
+            color: #764ba2;
+        }
+
+        .pane-control-btn.close:hover {
+            color: #dc3545;
+        }
+
+        .pane-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+                transform: translateX(0);
+            }
+
+            .sidebar.collapsed {
+                transform: translateX(-200px);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .main-content.sidebar-collapsed {
+                margin-left: 0;
+            }
+
+            .toggle-sidebar {
+                display: flex;
+            }
+
+            .content-area {
+                padding: 20px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .notes-wrapper {
+                padding: 20px 10px;
+                min-height: auto;
+            }
+
+            .notes-container {
+                padding: 16px;
+                max-width: 100%;
+            }
+
+            .notes-textarea {
+                padding: 12px;
+                font-size: 0.95rem;
+            }
+
+            .clock-wrapper {
+                padding-top: 20px;
+                padding: 20px;
+            }
+
+            .clock-container {
+                padding: 30px 20px;
+                width: 100%;
+            }
+
+            .clock-time {
+                font-size: 2.5rem;
+                letter-spacing: 2px;
+            }
+
+            .clock-date {
+                font-size: 1rem;
+            }
+
+            .clock-format-btn {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .panes-container {
+                grid-template-columns: 1fr;
+            }
+
+            .notes-wrapper {
+                padding: 15px 8px;
+            }
+
+            .notes-container {
+                padding: 12px;
+                border-radius: 8px;
+            }
+
+            .notes-textarea {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+
+            .clock-wrapper {
+                padding: 15px;
+            }
+
+            .clock-container {
+                padding: 20px 15px;
+            }
+
+            .clock-time {
+                font-size: 1.8rem;
+                letter-spacing: 1px;
+            }
+
+            .clock-date {
+                font-size: 0.85rem;
+            }
+
+            .clock-format-btn {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+        }
+
+        .html-viewer-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            gap: 0;
+        }
+
+        .html-viewer-wrapper.full-width .html-code-pane {
+            display: none;
+        }
+
+        .html-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            border: 1px solid #2a3f5f;
+        }
+
+        .html-pane-header {
+            padding: 10px 15px;
+            background-color: #16213e;
+            border-bottom: 1px solid #2a3f5f;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .html-preview-toggle-btn {
+            background-color: #667eea;
+            border: none;
+            color: #0a0e27;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .html-preview-toggle-btn:hover {
+            background-color: #764ba2;
+        }
+
+        .html-code-input {
+            flex: 1;
+            padding: 15px;
+            background-color: #0a0e27;
+            border: none;
+            color: #e4e6eb;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+        }
+
+        .html-code-input::placeholder {
+            color: #7a8ba8;
+        }
+
+        .html-code-input:focus {
+            outline: none;
+        }
+
+        .html-preview {
+            flex: 1;
+            overflow: auto;
+            background-color: #ffffff;
+            padding: 15px;
+        }
+
+        .html-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            .html-viewer-wrapper {
+                flex-direction: column;
+            }
+
+            .html-pane {
+                height: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ============================================
+        // REPOSITORY LAYER - Data Access Abstraction
+        // ============================================
+
+        // Todo Repository
+        const todoRepository = {
+            getAll: () => {
+                const saved = localStorage.getItem('todos');
+                return saved ? JSON.parse(saved) : [];
+            },
+            save: (todos) => {
+                localStorage.setItem('todos', JSON.stringify(todos));
+            },
+            add: (todo) => {
+                const todos = todoRepository.getAll();
+                todos.push(todo);
+                todoRepository.save(todos);
+                return todo;
+            },
+            update: (id, updates) => {
+                const todos = todoRepository.getAll();
+                const todo = todos.find(t => t.id === id);
+                if (todo) {
+                    Object.assign(todo, updates);
+                    todoRepository.save(todos);
+                }
+                return todo;
+            },
+            delete: (id) => {
+                const todos = todoRepository.getAll();
+                const filtered = todos.filter(t => t.id !== id);
+                todoRepository.save(filtered);
+            }
+        };
+
+        // Calendar Repository
+        const calendarRepository = {
+            getAll: () => {
+                const saved = localStorage.getItem('calendarEvents');
+                return saved ? JSON.parse(saved) : {};
+            },
+            save: (events) => {
+                localStorage.setItem('calendarEvents', JSON.stringify(events));
+            },
+            getEventsForDate: (dateKey) => {
+                const events = calendarRepository.getAll();
+                return events[dateKey] || [];
+            },
+            addEvent: (dateKey, event) => {
+                const events = calendarRepository.getAll();
+                if (!events[dateKey]) {
+                    events[dateKey] = [];
+                }
+                events[dateKey].push(event);
+                calendarRepository.save(events);
+                return event;
+            },
+            deleteEvent: (dateKey, eventId) => {
+                const events = calendarRepository.getAll();
+                if (events[dateKey]) {
+                    events[dateKey] = events[dateKey].filter(e => e.id !== eventId);
+                    if (events[dateKey].length === 0) {
+                        delete events[dateKey];
+                    }
+                    calendarRepository.save(events);
+                }
+            }
+        };
+
+        // Calculator Repository (history only)
+        const calculatorRepository = {
+            getHistory: () => {
+                const saved = localStorage.getItem('calcHistory');
+                return saved ? JSON.parse(saved) : [];
+            },
+            save: (history) => {
+                localStorage.setItem('calcHistory', JSON.stringify(history));
+            },
+            addToHistory: (calculation) => {
+                const history = calculatorRepository.getHistory();
+                history.unshift(calculation);
+                const limited = history.slice(0, 50); // Keep last 50
+                calculatorRepository.save(limited);
+            },
+            clearHistory: () => {
+                calculatorRepository.save([]);
+            }
+        };
+
+        // Notes Repository
+        const notesRepository = {
+            get: () => {
+                const saved = localStorage.getItem('notes');
+                return saved || '';
+            },
+            save: (notes) => {
+                localStorage.setItem('notes', notes);
+            }
+        };
+
+        function TodoApp() {
+            const [todos, setTodos] = useState(() => todoRepository.getAll());
+            const [input, setInput] = useState('');
+            const [activeTab, setActiveTab] = useState('todos');
+            const [sidebarOpen, setSidebarOpen] = useState(true);
+            const [calcDisplay, setCalcDisplay] = useState('0');
+            const [calcInput, setCalcInput] = useState('');
+            const [calcOperator, setCalcOperator] = useState(null);
+            const [calcPrevValue, setCalcPrevValue] = useState(null);
+            const [calcFormula, setCalcFormula] = useState('');
+            const [calcHistory, setCalcHistory] = useState(() => calculatorRepository.getHistory());
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [use24HourFormat, setUse24HourFormat] = useState(false);
+            const [calendarDate, setCalendarDate] = useState(new Date());
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [calendarEvents, setCalendarEvents] = useState(() => calendarRepository.getAll());
+            const [eventInput, setEventInput] = useState('');
+            const [editingTodoId, setEditingTodoId] = useState(null);
+            const [todoEditText, setTodoEditText] = useState('');
+            const [modalTodoId, setModalTodoId] = useState(null);
+            const [modalDate, setModalDate] = useState('');
+            const [modalHour, setModalHour] = useState('');
+            const [modalMinute, setModalMinute] = useState('');
+            const [deleteConfirmTodoId, setDeleteConfirmTodoId] = useState(null);
+            const [paneMode, setPaneMode] = useState(false);
+            const [panes, setPanes] = useState(['todos']);
+            const [notes, setNotes] = useState(() => notesRepository.get());
+            const [htmlViewerCode, setHtmlViewerCode] = useState(() => {
+                const saved = localStorage.getItem('htmlViewerCode');
+                return saved || '';
+            });
+            const [htmlViewerFullWidth, setHtmlViewerFullWidth] = useState(false);
+
+            // Sync todos to repository when they change
+            useEffect(() => {
+                todoRepository.save(todos);
+            }, [todos]);
+
+            // Sync calendar events to repository when they change
+            useEffect(() => {
+                calendarRepository.save(calendarEvents);
+            }, [calendarEvents]);
+
+            // Sync notes to repository when they change
+            useEffect(() => {
+                notesRepository.save(notes);
+            }, [notes]);
+
+            // Sync htmlViewerCode to localStorage when it changes
+            useEffect(() => {
+                localStorage.setItem('htmlViewerCode', htmlViewerCode);
+            }, [htmlViewerCode]);
+
+            // Update clock every second
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setCurrentTime(new Date());
+                }, 1000);
+                return () => clearInterval(timer);
+            }, []);
+
+            const addTodo = () => {
+                if (input.trim()) {
+                    const newTodo = {
+                        id: Date.now(),
+                        text: input,
+                        completed: false
+                    };
+                    const updated = [...todos, newTodo];
+                    setTodos(updated);
+                    setInput('');
+                }
+            };
+
+            const toggleTodo = (id) => {
+                setTodos(todos.map(todo =>
+                    todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                ));
+            };
+
+            const deleteTodo = (id) => {
+                setTodos(todos.filter(todo => todo.id !== id));
+            };
+
+            const startEditTodo = (id, text) => {
+                setEditingTodoId(id);
+                setTodoEditText(text);
+            };
+
+            const saveEditTodo = (id) => {
+                if (todoEditText.trim()) {
+                    setTodos(todos.map(todo =>
+                        todo.id === id ? { ...todo, text: todoEditText } : todo
+                    ));
+                }
+                setEditingTodoId(null);
+                setTodoEditText('');
+            };
+
+            const openCalendarModal = (id) => {
+                setModalTodoId(id);
+                setModalDate('');
+                setModalHour('');
+                setModalMinute('');
+            };
+
+            const saveToCalendar = () => {
+                if (!modalDate || !modalTodoId) return;
+
+                const todo = todos.find(t => t.id === modalTodoId);
+                if (!todo) return;
+
+                const eventText = modalHour || modalMinute
+                    ? `${todo.text} - ${modalHour.padStart(2, '0')}:${modalMinute.padStart(2, '0')}`
+                    : todo.text;
+
+                const newEvent = {
+                    id: Date.now(),
+                    text: eventText
+                };
+
+                const updated = { ...calendarEvents };
+                if (!updated[modalDate]) {
+                    updated[modalDate] = [];
+                }
+                updated[modalDate].push(newEvent);
+
+                setCalendarEvents(updated);
+                setModalTodoId(null);
+                setModalDate('');
+                setModalHour('');
+                setModalMinute('');
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    addTodo();
+                }
+            };
+
+            const handleCalcNumber = (num) => {
+                const newInput = calcInput === '' ? String(num) : calcInput + String(num);
+                setCalcInput(newInput);
+                setCalcDisplay(newInput);
+                if (calcFormula && !calcOperator) {
+                    setCalcFormula('');
+                }
+            };
+
+            const handleCalcDecimal = () => {
+                if (!calcInput.includes('.')) {
+                    const newInput = calcInput === '' ? '0.' : calcInput + '.';
+                    setCalcInput(newInput);
+                    setCalcDisplay(newInput);
+                }
+            };
+
+            const handleCalcOperator = (op) => {
+                if (calcInput === '' && calcPrevValue === null) return;
+
+                let newPrevValue = calcPrevValue;
+
+                if (calcPrevValue !== null && calcInput !== '' && calcOperator) {
+                    const result = calculate(calcPrevValue, parseFloat(calcInput), calcOperator);
+                    setCalcDisplay(String(result));
+                    newPrevValue = result;
+                    setCalcInput('');
+                } else if (calcInput !== '') {
+                    newPrevValue = parseFloat(calcInput);
+                    setCalcInput('');
+                }
+
+                setCalcFormula(`${newPrevValue} ${op}`);
+                setCalcPrevValue(newPrevValue);
+                setCalcOperator(op);
+            };
+
+            const calculate = (prev, current, op) => {
+                switch (op) {
+                    case '+':
+                        return prev + current;
+                    case '-':
+                        return prev - current;
+                    case '×':
+                        return prev * current;
+                    case '÷':
+                        return prev / current;
+                    default:
+                        return current;
+                }
+            };
+
+            const handleCalcEquals = () => {
+                if (calcOperator && calcPrevValue !== null && calcInput !== '') {
+                    const result = calculate(calcPrevValue, parseFloat(calcInput), calcOperator);
+                    const calculation = `${calcPrevValue} ${calcOperator} ${calcInput} = ${result}`;
+                    calculatorRepository.addToHistory(calculation);
+                    const updated = calculatorRepository.getHistory();
+                    setCalcHistory(updated);
+                    setCalcDisplay(String(result));
+                    setCalcFormula(`${calcPrevValue} ${calcOperator} ${calcInput}`);
+                    setCalcInput('');
+                    setCalcOperator(null);
+                    setCalcPrevValue(result);
+                }
+            };
+
+            const handleCalcClear = () => {
+                setCalcDisplay('0');
+                setCalcInput('');
+                setCalcOperator(null);
+                setCalcPrevValue(null);
+                setCalcFormula('');
+            };
+
+            const handleCalcBackspace = () => {
+                if (calcInput) {
+                    const newInput = calcInput.slice(0, -1);
+                    setCalcInput(newInput);
+                    setCalcDisplay(newInput || '0');
+                }
+            };
+
+            const handleCalcPercent = () => {
+                if (calcInput) {
+                    const val = parseFloat(calcInput) / 100;
+                    setCalcInput(String(val));
+                    setCalcDisplay(String(val));
+                }
+            };
+
+            const handleCalcToggleSign = () => {
+                if (calcInput) {
+                    const val = parseFloat(calcInput) * -1;
+                    setCalcInput(String(val));
+                    setCalcDisplay(String(val));
+                }
+            };
+
+            useEffect(() => {
+                const handleKeyPress = (e) => {
+                    if (activeTab !== 'calculator') return;
+
+                    if (e.key >= '0' && e.key <= '9') {
+                        handleCalcNumber(parseInt(e.key));
+                    } else if (e.key === '.') {
+                        handleCalcDecimal();
+                    } else if (e.key === '+' || e.key === '-') {
+                        e.preventDefault();
+                        handleCalcOperator(e.key);
+                    } else if (e.key === '*') {
+                        e.preventDefault();
+                        handleCalcOperator('×');
+                    } else if (e.key === '/') {
+                        e.preventDefault();
+                        handleCalcOperator('÷');
+                    } else if (e.key === 'Enter' || e.key === '=') {
+                        e.preventDefault();
+                        handleCalcEquals();
+                    } else if (e.key === 'Backspace') {
+                        e.preventDefault();
+                        handleCalcBackspace();
+                    } else if (e.key === 'Escape') {
+                        handleCalcClear();
+                    }
+                };
+
+                window.addEventListener('keydown', handleKeyPress);
+                return () => window.removeEventListener('keydown', handleKeyPress);
+            }, [calcInput, calcOperator, calcPrevValue, activeTab]);
+
+            const getDaysInMonth = (date) => {
+                return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+            };
+
+            const getFirstDayOfMonth = (date) => {
+                return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            };
+
+            const handleCalendarPrev = () => {
+                setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1));
+            };
+
+            const handleCalendarNext = () => {
+                setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1));
+            };
+
+            const getDateKey = (date) => {
+                return date.toISOString().split('T')[0];
+            };
+
+            const handleCalendarDay = (fullDate) => {
+                setSelectedDate(new Date(fullDate));
+                setEventInput('');
+            };
+
+            const handleAddEvent = () => {
+                if (!selectedDate || !eventInput.trim()) return;
+                const dateKey = getDateKey(selectedDate);
+                const newEvent = {
+                    id: Date.now(),
+                    text: eventInput.trim()
+                };
+                const updated = { ...calendarEvents };
+                if (!updated[dateKey]) {
+                    updated[dateKey] = [];
+                }
+                updated[dateKey].push(newEvent);
+                setCalendarEvents(updated);
+                setEventInput('');
+            };
+
+            const handleDeleteEvent = (dateKey, eventId) => {
+                const updated = { ...calendarEvents };
+                updated[dateKey] = updated[dateKey].filter(e => e.id !== eventId);
+                if (updated[dateKey].length === 0) {
+                    delete updated[dateKey];
+                }
+                setCalendarEvents(updated);
+            };
+
+            const getEventsForDate = (date) => {
+                const dateKey = getDateKey(date);
+                return calendarEvents[dateKey] || [];
+            };
+
+            const openPane = (tabName) => {
+                if (paneMode) {
+                    if (!panes.includes(tabName)) {
+                        setPanes([...panes, tabName]);
+                    }
+                } else {
+                    setActiveTab(tabName);
+                }
+                if (window.innerWidth <= 768) {
+                    setSidebarOpen(false);
+                }
+            };
+
+            const closePane = (tabName) => {
+                setPanes(panes.filter(p => p !== tabName));
+                if (panes.length === 1) {
+                    setPaneMode(false);
+                    setActiveTab('todos');
+                }
+            };
+
+            const swapPanes = (index1, index2) => {
+                const updated = [...panes];
+                [updated[index1], updated[index2]] = [updated[index2], updated[index1]];
+                setPanes(updated);
+            };
+
+            const getPaneTitle = (tabName) => {
+                switch(tabName) {
+                    case 'todos': return 'Todo List';
+                    case 'calendar': return 'Calendar';
+                    case 'calculator': return 'Calculator';
+                    case 'clock': return 'Clock';
+                    case 'notes': return 'Notes';
+                    case 'htmlViewer': return 'HTML Viewer';
+                    default: return tabName;
+                }
+            };
+
+            const renderPaneContent = (tabName) => {
+                switch(tabName) {
+                    case 'calculator':
+                        return (
+                            <div className="calculator-wrapper">
+                                <div style={{ width: '100%', maxWidth: '400px' }} className="calculator">
+                                    <div className="calc-displays">
+                                        {getCalcFormulaDisplay() && <div className="calc-formula">{getCalcFormulaDisplay()}</div>}
+                                        <div className="calc-display">{calcDisplay}</div>
+                                    </div>
+                                    <div className="calc-top-buttons">
+                                        <button className="calc-btn clear" onClick={handleCalcClear}>AC</button>
+                                        <button className="calc-btn delete" onClick={handleCalcBackspace}><i className="fas fa-backspace"></i></button>
+                                        <button className="calc-btn secondary" onClick={handleCalcToggleSign}><i className="fas fa-plus-minus"></i></button>
+                                        <button className="calc-btn secondary" onClick={handleCalcPercent}>%</button>
+                                    </div>
+                                    <div className="calc-grid">
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(7)}>7</button>
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(8)}>8</button>
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(9)}>9</button>
+                                        <button className="calc-btn operator" onClick={() => handleCalcOperator('÷')}>÷</button>
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(4)}>4</button>
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(5)}>5</button>
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(6)}>6</button>
+                                        <button className="calc-btn operator" onClick={() => handleCalcOperator('×')}>×</button>
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(1)}>1</button>
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(2)}>2</button>
+                                        <button className="calc-btn" onClick={() => handleCalcNumber(3)}>3</button>
+                                        <button className="calc-btn operator" onClick={() => handleCalcOperator('-')}>−</button>
+                                        <button className="calc-btn" style={{ gridColumn: 'span 2' }} onClick={() => handleCalcNumber(0)}>0</button>
+                                        <button className="calc-btn" onClick={handleCalcDecimal}>.</button>
+                                        <button className="calc-btn operator" onClick={() => handleCalcOperator('+')}>+</button>
+                                        <button className="calc-btn equals" style={{ gridColumn: 'span 4' }} onClick={handleCalcEquals}>=</button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    case 'clock':
+                        const rawHours = currentTime.getHours();
+                        const displayHours = use24HourFormat
+                            ? String(rawHours).padStart(2, '0')
+                            : String(rawHours % 12 || 12).padStart(2, '0');
+                        const ampm = rawHours >= 12 ? 'PM' : 'AM';
+                        const clockMinutes = String(currentTime.getMinutes()).padStart(2, '0');
+                        const clockSeconds = String(currentTime.getSeconds()).padStart(2, '0');
+                        const dayName = currentTime.toLocaleDateString('en-US', { weekday: 'long' });
+                        const monthName = currentTime.toLocaleDateString('en-US', { month: 'long' });
+                        const date = currentTime.getDate();
+                        const year = currentTime.getFullYear();
+
+                        return (
+                            <div className="clock-wrapper">
+                                <div className="clock-container">
+                                    <div className="clock-time">
+                                        {displayHours}:{clockMinutes}:{clockSeconds}
+                                        {!use24HourFormat && <span className="clock-ampm">{ampm}</span>}
+                                    </div>
+                                    <div className="clock-date">{dayName}, {monthName} {date}, {year}</div>
+                                    <button
+                                        className="clock-format-btn"
+                                        onClick={() => setUse24HourFormat(!use24HourFormat)}
+                                    >
+                                        {use24HourFormat ? '24H' : '12H'}
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    case 'calendar':
+                        return (
+                            <div className="calendar-wrapper" style={{ justifyContent: 'center', alignItems: 'flex-start', padding: 0 }}>
+                                <div className="calendar-container" style={{ width: '100%', maxWidth: '600px' }}>
+                                    <div className="calendar-header">
+                                        <button className="calendar-nav-btn" onClick={handleCalendarPrev}><i className="fas fa-chevron-left"></i></button>
+                                        <div className="calendar-month-year">
+                                            {calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                        </div>
+                                        <button className="calendar-nav-btn" onClick={handleCalendarNext}><i className="fas fa-chevron-right"></i></button>
+                                    </div>
+                                    <div className="calendar-grid">
+                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                            <div key={day} className="calendar-day-header">{day}</div>
+                                        ))}
+                                        {getCalendarDays().map((item, idx) => {
+                                            const now = new Date();
+                                            const isToday = item.fullDate.getDate() === now.getDate() &&
+                                                item.fullDate.getMonth() === now.getMonth() &&
+                                                item.fullDate.getFullYear() === now.getFullYear();
+                                            const isSelected = selectedDate &&
+                                                item.fullDate.getDate() === selectedDate.getDate() &&
+                                                item.fullDate.getMonth() === selectedDate.getMonth() &&
+                                                item.fullDate.getFullYear() === selectedDate.getFullYear();
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={`calendar-day ${item.isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`}
+                                                    onClick={() => !item.isOtherMonth && handleCalendarDay(item.fullDate)}
+                                                >
+                                                    {item.day}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {selectedDate && (
+                                        <div className="calendar-event-panel">
+                                            <div className="event-date-display">
+                                                {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            </div>
+                                            <div className="event-input-wrapper">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Add event..."
+                                                    value={eventInput}
+                                                    onChange={(e) => setEventInput(e.target.value)}
+                                                    onKeyPress={(e) => e.key === 'Enter' && handleAddEvent()}
+                                                />
+                                                <button onClick={handleAddEvent}>Add</button>
+                                            </div>
+                                            <div className="event-list">
+                                                {getEventsForDate(selectedDate).length > 0 ? (
+                                                    getEventsForDate(selectedDate).map(event => (
+                                                        <div key={event.id} className="event-item">
+                                                            <span className="event-item-text">{event.text}</span>
+                                                            <button
+                                                                className="event-delete-btn"
+                                                                onClick={() => handleDeleteEvent(getDateKey(selectedDate), event.id)}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="no-events">No events</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    case 'htmlViewer':
+                        return (
+                            <div className={`html-viewer-wrapper ${htmlViewerFullWidth ? 'full-width' : ''}`}>
+                                <div className="html-pane html-code-pane">
+                                    <div className="html-pane-header">HTML Code</div>
+                                    <textarea
+                                        className="html-code-input"
+                                        value={htmlViewerCode}
+                                        onChange={(e) => setHtmlViewerCode(e.target.value)}
+                                        placeholder="Paste your HTML code here..."
+                                    />
+                                </div>
+                                <div className="html-pane">
+                                    <div className="html-pane-header">
+                                        <span>Preview</span>
+                                        <button
+                                            className="html-preview-toggle-btn"
+                                            onClick={() => setHtmlViewerFullWidth(!htmlViewerFullWidth)}
+                                            title={htmlViewerFullWidth ? 'Show code' : 'Hide code'}
+                                        >
+                                            {htmlViewerFullWidth ? '⬅ Show Code' : '➜ Hide Code'}
+                                        </button>
+                                    </div>
+                                    <div className="html-preview">
+                                        <iframe
+                                            srcDoc={htmlViewerCode}
+                                            title="HTML Preview"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    case 'notes':
+                        return (
+                            <div className="notes-wrapper">
+                                <div className="notes-container">
+                                    <textarea
+                                        className="notes-textarea"
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        placeholder="Write your notes here..."
+                                    />
+                                </div>
+                            </div>
+                        );
+                    case 'todos':
+                    default:
+                        return (
+                            <>
+                                <div className="input-wrapper">
+                                    <input
+                                        type="text"
+                                        placeholder="Add a new task..."
+                                        value={input}
+                                        onChange={(e) => setInput(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        autoFocus
+                                    />
+                                    <button onClick={addTodo}>Add</button>
+                                </div>
+                                {displayTodos.length === 0 ? (
+                                    <div className="empty-state">
+                                        No tasks yet. Create one to get started!
+                                    </div>
+                                ) : (
+                                    <div className="todo-list">
+                                        {displayTodos.map(todo => (
+                                            <div key={todo.id}>
+                                                {editingTodoId === todo.id ? (
+                                                    <div className="todo-item">
+                                                        <input
+                                                            type="text"
+                                                            className="todo-edit-input"
+                                                            value={todoEditText}
+                                                            onChange={(e) => setTodoEditText(e.target.value)}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            autoFocus
+                                                        />
+                                                        <div className="todo-edit-actions">
+                                                            <button
+                                                                className="todo-edit-btn"
+                                                                onClick={() => saveEditTodo(todo.id)}
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <button
+                                                                className="todo-edit-btn todo-edit-cancel"
+                                                                onClick={() => setEditingTodoId(null)}
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        className={`todo-item ${todo.completed ? 'completed' : ''}`}
+                                                        onClick={() => toggleTodo(todo.id)}
+                                                    >
+                                                        <div className="todo-checkbox">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={todo.completed}
+                                                                onChange={() => toggleTodo(todo.id)}
+                                                            />
+                                                        </div>
+                                                        <span className="todo-text">{todo.text}</span>
+                                                        <div className="todo-actions">
+                                                            <button
+                                                                className="action-btn"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openCalendarModal(todo.id);
+                                                                }}
+                                                                title="Add to calendar"
+                                                            >
+                                                                <i className="fas fa-calendar-plus"></i>
+                                                            </button>
+                                                            <button
+                                                                className="action-btn"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    startEditTodo(todo.id, todo.text);
+                                                                }}
+                                                                title="Edit"
+                                                            >
+                                                                <i className="fas fa-edit"></i>
+                                                            </button>
+                                                            <button
+                                                                className="action-btn delete"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDeleteConfirmTodoId(todo.id);
+                                                                }}
+                                                                title="Delete"
+                                                            >
+                                                                <i className="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        );
+                }
+            };
+
+            const getCalendarDays = () => {
+                const daysInMonth = getDaysInMonth(calendarDate);
+                const firstDay = getFirstDayOfMonth(calendarDate);
+                const daysInPrevMonth = getDaysInMonth(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1));
+                const days = [];
+                const prevMonthDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1);
+
+                for (let i = firstDay - 1; i >= 0; i--) {
+                    days.push({
+                        day: daysInPrevMonth - i,
+                        isOtherMonth: true,
+                        fullDate: new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), daysInPrevMonth - i)
+                    });
+                }
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    days.push({
+                        day: i,
+                        isOtherMonth: false,
+                        fullDate: new Date(calendarDate.getFullYear(), calendarDate.getMonth(), i)
+                    });
+                }
+
+                const remainingDays = 42 - days.length;
+                const nextMonthDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1);
+                for (let i = 1; i <= remainingDays; i++) {
+                    days.push({
+                        day: i,
+                        isOtherMonth: true,
+                        fullDate: new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), i)
+                    });
+                }
+
+                return days;
+            };
+
+            const completedCount = todos.filter(t => t.completed).length;
+            const activeCount = todos.filter(t => !t.completed).length;
+
+            let displayTodos = todos;
+            let title = 'TaskHub';
+
+            if (activeTab === 'calculator') {
+                title = 'Calculator';
+            } else if (activeTab === 'calendar') {
+                title = 'Calendar';
+            }
+
+            const getCalcFormulaDisplay = () => {
+                if (calcOperator && calcPrevValue !== null) {
+                    return `${calcPrevValue} ${calcOperator} ${calcInput}`;
+                }
+                return '';
+            };
+
+            return (
+                <div className="app-wrapper">
+                    {sidebarOpen && window.innerWidth <= 768 && (
+                        <div
+                            className="sidebar-backdrop active"
+                            onClick={() => setSidebarOpen(false)}
+                        />
+                    )}
+                    <div className={`sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
+                        <div className="sidebar-header">
+                            <div className="logo">TaskHub</div>
+                        </div>
+
+                        <div className="nav-section">
+                            <div className="nav-section-title">Tools</div>
+                            <div
+                                className={`nav-item ${activeTab === 'todos' ? 'active' : ''}`}
+                                onClick={() => openPane('todos')}
+                            >
+                                <span className="nav-icon"><i className="fas fa-list"></i></span>
+                                <span>Todo List</span>
+                            </div>
+                            <div
+                                className={`nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
+                                onClick={() => openPane('calendar')}
+                            >
+                                <span className="nav-icon"><i className="fas fa-calendar"></i></span>
+                                <span>Calendar</span>
+                            </div>
+                            <div
+                                className={`nav-item ${activeTab === 'calculator' ? 'active' : ''}`}
+                                onClick={() => openPane('calculator')}
+                            >
+                                <span className="nav-icon"><i className="fas fa-calculator"></i></span>
+                                <span>Calculator</span>
+                            </div>
+                            <div
+                                className={`nav-item ${activeTab === 'notes' ? 'active' : ''}`}
+                                onClick={() => openPane('notes')}
+                            >
+                                <span className="nav-icon"><i className="fas fa-sticky-note"></i></span>
+                                <span>Notes</span>
+                            </div>
+                            <div
+                                className={`nav-item ${activeTab === 'clock' ? 'active' : ''}`}
+                                onClick={() => openPane('clock')}
+                            >
+                                <span className="nav-icon"><i className="fas fa-clock"></i></span>
+                                <span>Clock</span>
+                            </div>
+                            <div
+                                className={`nav-item ${activeTab === 'htmlViewer' ? 'active' : ''}`}
+                                onClick={() => openPane('htmlViewer')}
+                            >
+                                <span className="nav-icon"><i className="fas fa-code"></i></span>
+                                <span>HTML Viewer</span>
+                            </div>
+                        </div>
+
+                        <div className="pane-mode-toggle">
+                            <button
+                                className={`pane-mode-btn ${paneMode ? 'active' : ''}`}
+                                onClick={() => {
+                                    if (!paneMode) {
+                                        setPanes([activeTab]);
+                                    }
+                                    setPaneMode(!paneMode);
+                                }}
+                            >
+                                <span className="pane-toggle-switch"></span>
+                                <span>Pane Mode</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className={`main-content ${!sidebarOpen ? 'sidebar-collapsed' : ''}`}>
+                        <div className="header">
+                            <h1 className="header-title">{title}</h1>
+                            <button
+                                className="toggle-sidebar"
+                                onClick={() => setSidebarOpen(!sidebarOpen)}
+                                title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+                            >
+                                {sidebarOpen ? '✕' : '≡'}
+                            </button>
+                        </div>
+
+                        {paneMode ? (
+                            <div className={`panes-container ${panes.length === 1 ? 'single' : ''}`}>
+                                {panes.map((pane, idx) => (
+                                    <div key={pane} className="pane">
+                                        <div className="pane-header">
+                                            <span className="pane-title">{getPaneTitle(pane)}</span>
+                                            <div className="pane-controls">
+                                                {idx > 0 && (
+                                                    <button
+                                                        className="pane-control-btn"
+                                                        onClick={() => swapPanes(idx, idx - 1)}
+                                                        title="Move left"
+                                                    >
+                                                        <i className="fas fa-arrow-left"></i>
+                                                    </button>
+                                                )}
+                                                {idx < panes.length - 1 && (
+                                                    <button
+                                                        className="pane-control-btn"
+                                                        onClick={() => swapPanes(idx, idx + 1)}
+                                                        title="Move right"
+                                                    >
+                                                        <i className="fas fa-arrow-right"></i>
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="pane-control-btn close"
+                                                    onClick={() => closePane(pane)}
+                                                    title="Close pane"
+                                                >
+                                                    <i className="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="pane-content">
+                                            {renderPaneContent(pane)}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="content-area">
+                                {renderPaneContent(activeTab)}
+                            </div>
+                        )}
+
+                    {modalTodoId && (
+                        <div className="modal-overlay" onClick={() => setModalTodoId(null)}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">Add to Calendar</div>
+                                <div className="modal-field">
+                                    <label className="modal-label">Date</label>
+                                    <input
+                                        type="date"
+                                        className="modal-input"
+                                        value={modalDate}
+                                        onChange={(e) => setModalDate(e.target.value)}
+                                    />
+                                </div>
+                                <div className="modal-field">
+                                    <label className="modal-label">Time (optional)</label>
+                                    <div className="modal-time-inputs">
+                                        <input
+                                            type="number"
+                                            className="modal-input"
+                                            placeholder="HH"
+                                            min="0"
+                                            max="23"
+                                            value={modalHour}
+                                            onChange={(e) => setModalHour(e.target.value)}
+                                        />
+                                        <input
+                                            type="number"
+                                            className="modal-input"
+                                            placeholder="MM"
+                                            min="0"
+                                            max="59"
+                                            value={modalMinute}
+                                            onChange={(e) => setModalMinute(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="modal-actions">
+                                    <button className="modal-btn save" onClick={saveToCalendar}>
+                                        Save
+                                    </button>
+                                    <button className="modal-btn cancel" onClick={() => setModalTodoId(null)}>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {deleteConfirmTodoId && (
+                        <div className="modal-overlay" onClick={() => setDeleteConfirmTodoId(null)}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">Delete Todo?</div>
+                                <div style={{ padding: '20px', textAlign: 'center', color: '#e4e6eb' }}>
+                                    Are you sure you want to delete this todo? This cannot be undone.
+                                </div>
+                                <div className="modal-actions">
+                                    <button className="modal-btn delete" onClick={() => {
+                                        deleteTodo(deleteConfirmTodoId);
+                                        setDeleteConfirmTodoId(null);
+                                    }}>
+                                        Delete
+                                    </button>
+                                    <button className="modal-btn cancel" onClick={() => setDeleteConfirmTodoId(null)}>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<TodoApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>

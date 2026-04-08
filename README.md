@@ -78,8 +78,6 @@ That's it! The app will load and create a localStorage database automatically.
 taskhub/
 ├── index.html        # Single-file app (React + CSS + JS)
 ├── README.md         # This file
-├── CLAUDE.md         # Development guide
-└── .git/             # Version control
 ```
 
 ## Data Persistence

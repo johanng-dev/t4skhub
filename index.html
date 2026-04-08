@@ -582,7 +582,7 @@
             text-align: right;
             font-size: 0.85rem;
             color: #7a8ba8;
-            min-height: 24px;
+            min-height: 40px;
             font-family: 'Courier New', monospace;
             word-wrap: break-word;
             word-break: break-all;
@@ -1627,18 +1627,21 @@
                 if (calcInput === '' && calcPrevValue === null) return;
 
                 let newPrevValue = calcPrevValue;
+                let newFormula = calcFormula;
 
                 if (calcPrevValue !== null && calcInput !== '' && calcOperator) {
                     const result = calculate(calcPrevValue, parseFloat(calcInput), calcOperator);
-                    setCalcDisplay(String(result));
                     newPrevValue = result;
+                    newFormula = `${calcFormula} ${calcInput}`;
                     setCalcInput('');
                 } else if (calcInput !== '') {
                     newPrevValue = parseFloat(calcInput);
+                    newFormula = String(newPrevValue);
                     setCalcInput('');
                 }
 
-                setCalcFormula(`${newPrevValue} ${op}`);
+                newFormula = `${newFormula} ${op}`;
+                setCalcFormula(newFormula);
                 setCalcPrevValue(newPrevValue);
                 setCalcOperator(op);
             };
@@ -1658,15 +1661,30 @@
                 }
             };
 
+            const evaluateFormula = (formula) => {
+                // Replace display operators with math operators
+                let expr = formula.replace(/÷/g, '/').replace(/×/g, '*');
+                expr = `${expr} ${calcInput}`;
+
+                try {
+                    // Evaluate with proper order of operations
+                    const result = Function('"use strict"; return (' + expr + ')')();
+                    return result;
+                } catch (e) {
+                    return calcPrevValue;
+                }
+            };
+
             const handleCalcEquals = () => {
                 if (calcOperator && calcPrevValue !== null && calcInput !== '') {
-                    const result = calculate(calcPrevValue, parseFloat(calcInput), calcOperator);
-                    const calculation = `${calcPrevValue} ${calcOperator} ${calcInput} = ${result}`;
+                    const fullFormula = `${calcFormula} ${calcInput}`;
+                    const result = evaluateFormula(calcFormula);
+                    const calculation = `${fullFormula} = ${result}`;
                     calculatorRepository.addToHistory(calculation);
                     const updated = calculatorRepository.getHistory();
                     setCalcHistory(updated);
                     setCalcDisplay(String(result));
-                    setCalcFormula(`${calcPrevValue} ${calcOperator} ${calcInput}`);
+                    setCalcFormula(fullFormula);
                     setCalcInput('');
                     setCalcOperator(null);
                     setCalcPrevValue(result);
@@ -1845,8 +1863,8 @@
                             <div className="calculator-wrapper">
                                 <div style={{ width: '100%', maxWidth: '400px' }} className="calculator">
                                     <div className="calc-displays">
-                                        {getCalcFormulaDisplay() && <div className="calc-formula">{getCalcFormulaDisplay()}</div>}
-                                        <div className="calc-display">{calcDisplay}</div>
+                                        <div className="calc-formula">{getCalcFormulaDisplay()}</div>
+                                        <div className="calc-display">{calcInput || calcDisplay}</div>
                                     </div>
                                     <div className="calc-top-buttons">
                                         <button className="calc-btn clear" onClick={handleCalcClear}>AC</button>
@@ -2175,10 +2193,10 @@
             }
 
             const getCalcFormulaDisplay = () => {
-                if (calcOperator && calcPrevValue !== null) {
-                    return `${calcPrevValue} ${calcOperator} ${calcInput}`;
+                if (calcInput) {
+                    return `${calcFormula} ${calcInput}`;
                 }
-                return '';
+                return calcFormula;
             };
 
             return (

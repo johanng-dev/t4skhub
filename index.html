@@ -1691,7 +1691,14 @@
 
             const handleCalcPercent = () => {
                 if (calcInput) {
-                    const val = parseFloat(calcInput) / 100;
+                    let val = parseFloat(calcInput);
+                    // If there's an operator and a previous value, calculate percentage of that value
+                    if (calcOperator && calcPrevValue !== null) {
+                        val = (calcPrevValue * val) / 100;
+                    } else {
+                        // Otherwise just convert to decimal percentage
+                        val = val / 100;
+                    }
                     setCalcInput(String(val));
                     setCalcDisplay(String(val));
                 }
